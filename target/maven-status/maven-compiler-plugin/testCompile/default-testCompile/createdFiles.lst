@@ -1,0 +1,3 @@
+com\endava\nasa\atf\steps\NasaApiSteps$EarthImageryProxy.class
+com\endava\nasa\atf\steps\NasaApiSteps.class
+com\endava\nasa\atf\runners\RunCucumberTest.class
