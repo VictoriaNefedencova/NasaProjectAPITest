@@ -1,1 +1,6 @@
+# Ignore test output reports
+test-output/NasaApiDynamicReport.html
 
+# Ignore cucumber reports
+target/cucumber-html-report.html
+target/cucumber.json
