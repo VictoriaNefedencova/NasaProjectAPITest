@@ -1,49 +1,43 @@
-
 package org.example;
 
-import org.apache.hc.client5.http.classic.methods.HttpGet;
-import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
-import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
-import org.apache.hc.client5.http.impl.classic.HttpClients;
-
-import org.testng.annotations.Test;
-import org.testng.Assert;
-
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.CloseableHttpResponse;
 import java.io.IOException;
+import java.util.logging.Logger;
 
 public abstract class NasaApiBase {
 
-        @Test
-        public void testBaseFunctionality() {
-        System.out.println("NasaApiBase test executed.");
-        Assert.assertTrue(true);
-    }
+    private static final Logger log = Logger.getLogger(NasaApiBase.class.getName());
 
-    // Чтение значений из конфигурационного файла
-    protected static final String API_KEY = ConfigLoader.getProperty("api.key");
-    protected static final String BASE_URL = ConfigLoader.getProperty("base.url");
-    protected static final double LON = ConfigLoader.getDoubleProperty("longitude");  // Долгота
-    protected static final double LAT = ConfigLoader.getDoubleProperty("latitude");  // Широта
-    protected static final String DATE = ConfigLoader.getCurrentDate();  // Текущая дата
-    protected static final double DIM = ConfigLoader.getDoubleProperty("dimension");  // Размер области
+    protected static final String BASE_URL = ConfigLoader.getString("base.url");
+    protected static final String API_KEY = ConfigLoader.getString("api.key");
+    protected static final String DATE = ConfigLoader.getCurrentDate(); // Fetch the current date dynamically
+    protected static final double LAT = ConfigLoader.getDouble("latitude");
+    protected static final double LON = ConfigLoader.getDouble("longitude");
+    protected static final double DIM = ConfigLoader.getDouble("dimension");
 
-    // Абстрактные методы: реализованы в дочерних классах
+    // Abstract method to build the API URL.
     protected abstract String buildUrl();
+
+    // Abstract method to extract the URL from the response.
     protected abstract String extractUrlFromResponse(String response);
 
     /**
-     * Метод для получения данных по URL через GET-запрос.
+     * Method to fetch data from the URL using an HTTP GET request.
      *
-     * @param url URL для запроса
-     * @return Ответ API в виде строки
-     * @throws IOException В случае ошибки сети
+     * @param url URL to fetch data from
+     * @return The response data as a string
+     * @throws IOException if there is a network error
      */
     protected String fetchData(String url) throws IOException {
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
             HttpGet httpGet = new HttpGet(url);
             try (CloseableHttpResponse response = httpClient.execute(httpGet)) {
-                if (response.getCode() != 200) {
-                    throw new IOException("Ошибка HTTP: код " + response.getCode());
+                int statusCode = response.getStatusLine().getStatusCode();
+                if (statusCode != Constants.HTTP_OK) { // Use the constant for HTTP_OK
+                    throw new IOException("HTTP error: code " + statusCode);
                 }
                 return new String(response.getEntity().getContent().readAllBytes());
             }

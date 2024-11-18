@@ -9,50 +9,57 @@ import org.junit.runner.RunWith;
 import java.awt.Desktop;
 import java.io.File;
 import java.io.IOException;
+import java.util.logging.Logger;
 
 @RunWith(Cucumber.class)
 @CucumberOptions(
-        features = "src/test/resources/features", // Путь к feature-файлам
-        glue = "com.endava.nasa.atf.steps", // Пакет с step definitions
+        features = RunCucumberTest.FEATURES_PATH, // Path to feature files
+        glue = RunCucumberTest.STEP_DEFINITIONS,  // Package with step definitions
         plugin = {
-                "pretty", // Логирование в консоль
-                "html:target/cucumber-html-report.html", // Генерация HTML-отчета
-                "json:target/cucumber.json" // Генерация JSON-отчета
+                "pretty",                         // Console logging
+                "html:" + RunCucumberTest.HTML_REPORT_PATH, // Generate HTML report
+                "json:" + RunCucumberTest.JSON_REPORT_PATH  // Generate JSON report
         }
 )
 public class RunCucumberTest {
 
+    private static final Logger log = Logger.getLogger(RunCucumberTest.class.getName());
+
+    // Constants for paths
+    public static final String FEATURES_PATH = "src/test/resources/features";
+    public static final String STEP_DEFINITIONS = "com.endava.nasa.atf.steps";
+    public static final String HTML_REPORT_PATH = "target/cucumber-html-report.html";
+    public static final String JSON_REPORT_PATH = "target/cucumber.json";
+
     @BeforeClass
     public static void setup() {
-        // Метод, который выполняется перед запуском тестов
-        System.out.println("Запуск тестов Cucumber...");
+        // Method executed before tests
+        log.info("Starting Cucumber tests...");
     }
 
     @AfterClass
     public static void tearDown() {
-        // Автоматическое открытие отчета в браузере после выполнения тестов
+        // Automatically open the report in the browser after tests
         openReport();
     }
 
-    public static void openReport() {
-        // Путь к отчету
-        String reportPath = "target/cucumber-html-report.html";
+    private static void openReport() {
+        File reportFile = new File(HTML_REPORT_PATH);
 
-        // Проверяем, поддерживается ли Desktop API
         if (Desktop.isDesktopSupported()) {
             try {
-                File reportFile = new File(reportPath);
                 if (reportFile.exists()) {
-                    // Открываем отчет в браузере
+                    // Open the report in the default browser
                     Desktop.getDesktop().browse(reportFile.toURI());
+                    log.info("HTML report opened in the browser: " + HTML_REPORT_PATH);
                 } else {
-                    System.err.println("Отчет не найден: " + reportPath);
+                    log.severe("HTML report not found at: " + HTML_REPORT_PATH);
                 }
             } catch (IOException e) {
-                e.printStackTrace();
+                log.severe("Error opening the HTML report: " + e.getMessage());
             }
         } else {
-            System.err.println("Desktop API не поддерживается на этой системе.");
+            log.severe("Desktop API is not supported on this system.");
         }
     }
 }

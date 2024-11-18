@@ -1,82 +1,63 @@
 package org.example;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.json.JSONException;
+import org.json.JSONObject;
 
-import org.testng.annotations.Test;
-import org.testng.Assert;
-
-import java.awt.Desktop;
-import java.io.IOException;
+import java.awt.*;
 import java.net.URI;
+import java.util.logging.Logger;
 
 public class NasaApi extends NasaApiBase {
 
-    @Test
-    public void testApiConnection() {
-        System.out.println("NasaApi test executed.");
-        Assert.assertTrue(true);
-    }
+    private static final Logger log = Logger.getLogger(NasaApi.class.getName());
+    private static final String APOD_ENDPOINT = "/planetary/apod?api_key=";
 
     @Override
     protected String buildUrl() {
-        // URL для запроса данных
-        return BASE_URL + "/planetary/apod?api_key=" + API_KEY + "&date=" + DATE;
+        return BASE_URL + APOD_ENDPOINT + API_KEY + "&date=" + DATE;
     }
 
     @Override
     protected String extractUrlFromResponse(String response) {
         try {
-            // Парсим JSON-ответ
-            ObjectMapper mapper = new ObjectMapper();
-            JsonNode rootNode = mapper.readTree(response);
-
-            // Пытаемся получить "url" из ответа
-            String url = rootNode.path("url").asText(null); // Возвращает null, если ключ отсутствует
-            if (url == null || url.isEmpty()) {
-                throw new IOException("URL не найден в ответе API.");
-            }
-            return url;
-        } catch (IOException e) {
-            System.err.println("Ошибка при парсинге JSON: " + e.getMessage());
+            // Parse the JSON response
+            JSONObject jsonResponse = new JSONObject(response);
+            // Extract the 'url' field from the JSON object
+            return jsonResponse.optString("url");
+        } catch (JSONException e) {
+            log.severe("Error parsing JSON response: " + e.getMessage());
             return null;
         }
     }
 
     public void openImageInBrowser() {
         try {
-            // URL API
             String apiUrl = buildUrl();
-
-            // запрос к API
+            // Call the inherited fetchData method from NasaApiBase
             String response = fetchData(apiUrl);
 
-            // Извлекаем URL изображения
+            // Extract the image URL from the response
             String imageUrl = extractUrlFromResponse(response);
 
-            // Открываем изображение в браузере
             if (imageUrl != null) {
+                log.info("Image URL fetched: " + imageUrl);
+
                 if (Desktop.isDesktopSupported()) {
                     Desktop.getDesktop().browse(new URI(imageUrl));
-                    System.out.println("Изображение открыто в браузере: " + imageUrl);
+                    log.info("Image opened in browser: " + imageUrl);
                 } else {
-                    System.out.println("Открытие браузера не поддерживается на этой системе.");
+                    log.warning("Desktop browsing is not supported on this system.");
                 }
             } else {
-                System.out.println("Не удалось извлечь URL изображения из ответа API.");
+                log.warning("No URL found in the API response.");
             }
         } catch (Exception e) {
-            System.err.println("Ошибка при открытии изображения в браузере: " + e.getMessage());
+            log.severe("Error opening image: " + e.getMessage());
         }
     }
 
     public static void main(String[] args) {
-        // Создаем экземпляр API
         NasaApi api = new NasaApi();
-
-        // Открываем изображение в браузере
         api.openImageInBrowser();
     }
-
-
 }
