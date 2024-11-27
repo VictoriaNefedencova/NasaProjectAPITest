@@ -3,6 +3,7 @@ package org.example;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Properties;
+import org.springframework.http.HttpStatus;
 
 public class Constants {
 
@@ -10,9 +11,9 @@ public class Constants {
     public static final String CONFIG_FILE_PATH = "src/main/resources/config.properties";
     public static final String REPORT_FILE_PATH = "test-output/NasaApiDynamicReport.html";
 
-    // HTTP status codes
-    public static final int HTTP_OK = 200; // HTTP 200 OK status code
-    public static final int HTTP_METHOD_NOT_ALLOWED = 405; // HTTP 405 Method Not Allowed status code
+   // HTTP status codes
+   boolean isSuccessful = HttpStatus.OK.is2xxSuccessful();// HTTP 200 OK status code
+    //public static final int HTTP_METHOD_NOT_ALLOWED = 405; // HTTP 405 Method Not Allowed status code
 
     // API-related constants (will be loaded from properties)
     public static String BASE_URL;
