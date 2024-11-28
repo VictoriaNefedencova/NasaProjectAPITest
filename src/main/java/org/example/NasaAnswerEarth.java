@@ -10,7 +10,7 @@ public class NasaAnswerEarth {
     String service_version;
     String url;
 
-    // Конструктор для инициализации всех полей
+    // Constructor for initializing all fields
     public NasaAnswerEarth(@JsonProperty("date") String date,
                            @JsonProperty("id") String id,
                            @JsonProperty("resource") Resource resource,

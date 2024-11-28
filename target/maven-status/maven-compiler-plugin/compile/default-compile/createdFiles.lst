@@ -3,6 +3,7 @@ org\example\NasaAnswerEarth$Resource.class
 org\example\NasaApi.class
 org\example\NasaAnswerApod.class
 org\example\NasaEarthImagery.class
+org\example\Constants.class
 org\example\DynamicTestRunner.class
 org\example\NasaAnswerEarth.class
 org\example\NasaWebTest.class
