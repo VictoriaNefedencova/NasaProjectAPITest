@@ -27,10 +27,9 @@ public class NasaEarthImagery extends NasaApiBase {
     protected String extractUrlFromResponse(String response) {
         try {
             ObjectMapper mapper = new ObjectMapper();
-            NasaAnswerEarth nasaAnswer = (NasaAnswerEarth)mapper.readValue(response, NasaAnswerEarth.class);
+            NasaAnswerEarth nasaAnswer = mapper.readValue(response, NasaAnswerEarth.class);
             return nasaAnswer.url;
-        } catch (IOException var4) {
-            IOException e = var4;
+        } catch (IOException e) {
             log.severe("Error parsing JSON response: " + e.getMessage());
             return null;
         }
@@ -52,14 +51,11 @@ public class NasaEarthImagery extends NasaApiBase {
             } else {
                 log.warning("Image URL not found in the response.");
             }
-        } catch (IOException var4) {
-            IOException e = var4;
+        } catch (IOException e) {
             log.severe("Error fetching data: " + e.getMessage());
-        } catch (Exception var5) {
-            Exception e = var5;
+        } catch (Exception e) {
             log.severe("Error opening image in browser: " + e.getMessage());
         }
-
     }
 
     public static void main(String[] args) {
@@ -69,4 +65,3 @@ public class NasaEarthImagery extends NasaApiBase {
         log.info("Application finished execution.");
     }
 }
-

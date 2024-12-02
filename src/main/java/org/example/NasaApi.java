@@ -1,4 +1,3 @@
-
 package org.example;
 
 import java.awt.Desktop;
@@ -22,9 +21,8 @@ public class NasaApi extends NasaApiBase {
         try {
             JSONObject jsonResponse = new JSONObject(response);
             return jsonResponse.optString("url");
-        } catch (JSONException var3) {
-            JSONException e = var3;
-            log.severe("Error parsing JSON response: " + e.getMessage());
+        } catch (JSONException jsonException) {
+            log.severe("Error parsing JSON response: " + jsonException.getMessage());
             return null;
         }
     }
@@ -35,21 +33,19 @@ public class NasaApi extends NasaApiBase {
             String response = this.fetchData(apiUrl);
             String imageUrl = this.extractUrlFromResponse(response);
             if (imageUrl != null) {
-                log.info("Image URL fetched: " + imageUrl);
+                log.severe("Image URL fetched: " + imageUrl);
                 if (Desktop.isDesktopSupported()) {
                     Desktop.getDesktop().browse(new URI(imageUrl));
-                    log.info("Image opened in browser: " + imageUrl);
+                    log.severe("Image opened in browser: " + imageUrl);
                 } else {
-                    log.warning("Desktop browsing is not supported on this system.");
+                    log.severe("Desktop browsing is not supported on this system.");
                 }
             } else {
-                log.warning("No URL found in the API response.");
+                log.severe("No URL found in the API response.");
             }
-        } catch (Exception var4) {
-            Exception e = var4;
+        } catch (Exception e) {
             log.severe("Error opening image: " + e.getMessage());
         }
-
     }
 
     public static void main(String[] args) {
@@ -57,4 +53,3 @@ public class NasaApi extends NasaApiBase {
         api.openImageInBrowser();
     }
 }
-

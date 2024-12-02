@@ -18,7 +18,7 @@ abstract class NasaCheckError extends NasaApiBase {
 
     @Test
     public void testErrorHandling() {
-        log.info("Executing NasaCheckError test...");
+        log.severe("Executing NasaCheckError test...");
         Assert.assertTrue(true);
     }
 
@@ -32,7 +32,7 @@ abstract class NasaCheckError extends NasaApiBase {
 
     public static void check405Error() throws IOException {
         String fullUrl = BASE_URL + "/planetary/apod?api_key=" + API_KEY;
-        log.info("Checking for HTTP 405 error using URL: " + fullUrl);
+        log.severe("Checking for HTTP 405 error using URL: " + fullUrl);
 
         try {
             CloseableHttpClient httpClient = HttpClients.createDefault();
@@ -44,52 +44,50 @@ abstract class NasaCheckError extends NasaApiBase {
                 try {
                     int statusCode = response.getStatusLine().getStatusCode();
                     if (statusCode == HttpStatus.METHOD_NOT_ALLOWED.value()) {
-                        log.warning("-----------------------------------------------------------\nError 405: POST method is not allowed for this resource.\n-----------------------------------------------------------");
+                        log.severe("-----------------------------------------------------------\nError 405: POST method is not allowed for this resource.\n-----------------------------------------------------------");
                     } else {
-                        log.info("Response received with status code: " + statusCode);
+                        log.severe("Response received with status code: " + statusCode);
                     }
-                } catch (Throwable var8) {
+                } catch (Throwable responseException) {
                     if (response != null) {
                         try {
                             response.close();
-                        } catch (Throwable var7) {
-                            var8.addSuppressed(var7);
+                        } catch (Throwable closeException) {
+                            responseException.addSuppressed(closeException);
                         }
                     }
 
-                    throw var8;
+                    throw responseException;
                 }
 
                 if (response != null) {
                     response.close();
                 }
-            } catch (Throwable var9) {
+            } catch (Throwable httpClientException) {
                 if (httpClient != null) {
                     try {
                         httpClient.close();
-                    } catch (Throwable var6) {
-                        var9.addSuppressed(var6);
+                    } catch (Throwable closeException) {
+                        httpClientException.addSuppressed(closeException);
                     }
                 }
 
-                throw var9;
+                throw httpClientException;
             }
 
             if (httpClient != null) {
                 httpClient.close();
             }
 
-        } catch (IOException var10) {
-            IOException e = var10;
+        } catch (IOException e) {
             log.severe("Error occurred while checking 405 error: " + e.getMessage());
             throw e;
         }
     }
 
     public static void main(String[] args) throws IOException {
-        log.info("Starting the NasaCheckError application...");
+        log.severe("Starting the NasaCheckError application...");
         check405Error();
-        log.info("Application finished execution.");
+        log.severe("Application finished execution.");
     }
 }
-

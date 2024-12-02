@@ -8,7 +8,6 @@ import java.awt.Desktop;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.URI;
-import java.net.URL;
 import java.util.logging.Logger;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -18,6 +17,7 @@ import org.example.ConfigLoader;
 import org.example.Constants;
 import org.example.NasaApi;
 import org.example.NasaEarthImagery;
+import org.example.NasaWebTest;
 import org.junit.Assert;
 import org.openqa.selenium.By;
 import org.openqa.selenium.Keys;
@@ -25,6 +25,8 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.interactions.Actions;
+import java.io.InputStream;
+import java.util.Properties;
 
 public class NasaApiSteps {
     private final NasaApi nasaApi = new NasaApi();
@@ -35,8 +37,11 @@ public class NasaApiSteps {
     private String apiResponse;
     private String imageUrl;
     private int statusCode;
+    private final NasaWebTest nasaWebTest = new NasaWebTest();
+
 
     public NasaApiSteps() {
+
     }
 
     @Given("the current day's image is available on the APOD API")
@@ -48,19 +53,17 @@ public class NasaApiSteps {
         try {
             this.imageUrl = this.callExtractUrlFromResponse(this.apiResponse);
             Assert.assertNotNull("Image URL should not be null", this.imageUrl);
-            log.info("Extracted image URL: " + this.imageUrl);
+            log.severe("Extracted image URL: " + this.imageUrl);
             if (Desktop.isDesktopSupported()) {
                 Desktop.getDesktop().browse(new URI(this.imageUrl));
-                log.info("Image successfully opened in the browser: " + this.imageUrl);
+                log.severe("Image successfully opened in the browser: " + this.imageUrl);
             } else {
                 Assert.fail("Desktop operations are not supported.");
             }
-        } catch (Exception var2) {
-            Exception e = var2;
-            log.severe("Error opening image: " + e.getMessage());
-            Assert.fail("Error opening image: " + e.getMessage());
+        } catch (Exception generalException) {
+            log.severe("Error opening image: " + generalException.getMessage());
+            Assert.fail("Error opening image: " + generalException.getMessage());
         }
-
     }
 
     @Given("the current day's image is available on the Earth API")
@@ -83,32 +86,52 @@ public class NasaApiSteps {
             Assert.assertNotNull("Image URL should not be null", this.imageUrl);
             if (Desktop.isDesktopSupported()) {
                 Desktop.getDesktop().browse(new URI(this.imageUrl));
-                log.warning("Image successfully opened in browser: " + this.imageUrl);
+                log.severe("Image successfully opened in browser: " + this.imageUrl);
             } else {
                 log.severe("Desktop operations are not supported on this system.");
                 Assert.fail("Desktop operations are not supported on this system.");
             }
-        } catch (Exception var4) {
-            Exception e = var4;
-            log.severe("Error while opening the image in browser: " + e.getMessage());
-            Assert.fail("Error while opening the image in browser: " + e.getMessage());
+        } catch (Exception generalException) {
+            log.severe("Error while opening the image in browser: " + generalException.getMessage());
+            Assert.fail("Error while opening the image in browser: " + generalException.getMessage());
         }
-
     }
 
     @Given("The Earth API only accepts GET parameters on the NASA API page")
     public void theEarthAPIOnlyAcceptsGETParametersOnTheNASAAPIPage() {
     }
 
-    @Given("I navigate to the NASA API homepage")
+    @Given(value = "I navigate to the NASA API homepage")
     public void navigateToNasaApiHomepage() {
-        System.setProperty("webdriver.chrome.driver", "C://Users//vnefedencova//chromedriver.exe");
-        this.driver = new ChromeDriver();
-        new Actions(this.driver);
-        this.driver.get(Constants.BASE_URL);
-        this.driver.manage().window().fullscreen();
-        log.info("Navigated to NASA API website: " + Constants.BASE_URL);
+        loadDriverPath(); // Load the driver path before using it
+
+        this.driver = new ChromeDriver(); // Initialize the WebDriver with ChromeDriver
+        new Actions(this.driver); // Create an Actions object for performing complex interactions
+        this.driver.get(Constants.BASE_URL); // Navigate to the NASA API homepage
+        this.driver.manage().window().fullscreen(); // Set the browser window to fullscreen
+        log.severe("Navigated to NASA API website: " + Constants.BASE_URL); // Log the navigation action
     }
+
+    // Load the driver path from the properties file
+    private void loadDriverPath() {
+        Properties properties = new Properties();
+        try (InputStream inputStream = getClass().getClassLoader().getResourceAsStream("config.properties")) {
+            // Load properties from the file
+            properties.load(inputStream);
+
+            // Directly retrieve the ChromeDriver path from the properties file
+            String driverPath = properties.getProperty("webdriver.chrome.driver");
+
+            // Set the system property for ChromeDriver
+            System.setProperty("webdriver.chrome.driver", driverPath);
+            log.severe("ChromeDriver path set to: " + driverPath);
+
+        } catch (Exception e) {
+            // Log any exceptions encountered during the process
+            log.severe("Error loading driver path from properties file: " + e.getMessage());
+        }
+    }
+
 
     @When("I search for {string}")
     public void iSearchFor(String searchQuery) throws InterruptedException {
@@ -116,6 +139,12 @@ public class NasaApiSteps {
     }
 
     public void searchForApi(String searchQuery) throws InterruptedException {
+
+        // To make sure WebDriver is initialized before performing any actions
+        if (this.driver == null) {
+            loadDriverPath(); // Load the WebDriver path and initialize ChromeDriver
+            this.driver = new ChromeDriver(); // Initialize the ChromeDriver
+        }
         WebElement searchField = this.driver.findElement(By.cssSelector("#search-field-big"));
         searchField.clear();
         searchField.sendKeys(new CharSequence[]{searchQuery});
@@ -129,43 +158,15 @@ public class NasaApiSteps {
         Thread.sleep(1000L);
     }
 
-    @Then("I should see the {string} URL displayed and it matches the built URL")
+    @Then(value = "I should see the {string} URL displayed and it matches the built URL")
     public void validateUrlDisplayedAndCompare(String type) {
+        // Determine the selector based on type
         String selector = type.equalsIgnoreCase("APOD") ? "#b-a1 > p:nth-child(7) > code" : "#b-a4 > p:nth-child(9) > code";
-        String expectedUrl = type.equalsIgnoreCase("APOD") ? this.nasaApi.buildUrl() : this.earthImagery.buildUrl();
 
-        try {
-            WebElement codeElement = this.driver.findElement(By.cssSelector(selector));
-            String fullUrl = codeElement.getText().trim();
-            URL url = new URL(fullUrl);
-            String var10000 = url.getProtocol();
-            String baseUrl = var10000 + "://" + url.getHost();
-            String path = url.getPath();
-            log.warning(type + " Base URL: " + baseUrl);
-            log.warning(type + " Path: " + path);
-            if (baseUrl.equals(Constants.BASE_URL)) {
-                log.warning(type + " URL matches the base URL.");
-            } else {
-                log.warning(type + " URL does not match the base URL.");
-            }
-
-            Assert.assertEquals("Built URL matches API response URL", expectedUrl, fullUrl);
-            log.warning(type + " Full URL matches the built URL.");
-        } catch (Exception var9) {
-            Exception e = var9;
-            log.warning("Error processing " + type + " URL: " + e.getMessage());
-            Assert.fail("Error processing " + type + " URL: " + e.getMessage());
-        }
-
+        // Call validateUrl from NasaWebTest class
+        this.nasaWebTest.validateUrl(driver, selector, type);  // Call the method
     }
 
-    @Then("I should see the APOD URL displayed and it matches the built URL")
-    public void iShouldSeeTheAPODURLDisplayedAndItMatchesTheBuiltURL() {
-    }
-
-    @Then("I should see the Earth URL displayed and it matches the built URL")
-    public void iShouldSeeTheEarthURLDisplayedAndItMatchesTheBuiltURL() {
-    }
 
     public String callExtractUrlFromResponse(String response) {
         return this.nasaApi.extractUrlFromResponse(response);
@@ -173,10 +174,10 @@ public class NasaApiSteps {
 
     private void handleApiRequest(NasaApiHandler handler) throws IOException {
         this.apiUrl = handler.buildUrl();
-        log.info("Sending request to NASA API with URL: " + this.apiUrl);
+        log.severe("Sending request to NASA API with URL: " + this.apiUrl);
         this.apiResponse = handler.fetchData(this.apiUrl);
         Assert.assertNotNull("API response should not be null", this.apiResponse);
-        log.info("Received response from NASA API: " + this.apiResponse);
+        log.severe("Received response from NASA API: " + this.apiResponse);
         this.imageUrl = handler.extractImageUrl(this.apiResponse);
         Assert.assertNotNull("Image URL should not be null", this.imageUrl);
     }
@@ -186,16 +187,14 @@ public class NasaApiSteps {
         try {
             if (Desktop.isDesktopSupported()) {
                 Desktop.getDesktop().browse(new URI(this.imageUrl));
-                log.warning("Image successfully opened in the browser: " + this.imageUrl);
+                log.severe("Image successfully opened in the browser: " + this.imageUrl);
             } else {
                 Assert.fail("Desktop operations are not supported.");
             }
-        } catch (Exception var2) {
-            Exception e = var2;
-            log.severe("Error opening image: " + e.getMessage());
-            Assert.fail("Error opening image: " + e.getMessage());
+        } catch (Exception generalException) {
+            log.severe("Error opening image: " + generalException.getMessage());
+            Assert.fail("Error opening image: " + generalException.getMessage());
         }
-
     }
 
     @When("I send a valid request to the APOD API on NASA's site")
@@ -212,15 +211,14 @@ public class NasaApiSteps {
     public void closeBrowser() {
         if (this.driver != null) {
             this.driver.quit();
-            log.info("Browser closed successfully.");
+            log.severe("Browser closed successfully.");
         }
-
     }
 
     @When("I send a valid POST request to the Earth API on NASA's site")
     public void sendPostRequestToEarthApi() {
         this.apiUrl = (new EarthApiHandler()).buildUrl();
-        log.info("Sending POST request to Earth API with URL: " + this.apiUrl);
+        log.severe("Sending POST request to Earth API with URL: " + this.apiUrl);
 
         try {
             CloseableHttpClient httpClient = HttpClients.createDefault();
@@ -231,53 +229,59 @@ public class NasaApiSteps {
 
                 try {
                     this.statusCode = response.getStatusLine().getStatusCode();
-                    log.info("Received response with status code: " + this.statusCode);
-                } catch (Throwable var8) {
+                    log.severe("Received response with status code: " + this.statusCode);
+                } catch (Throwable responseException) {
                     if (response != null) {
                         try {
                             response.close();
-                        } catch (Throwable var7) {
-                            var8.addSuppressed(var7);
+                        } catch (Throwable closeException) {
+                            responseException.addSuppressed(closeException);
                         }
                     }
 
-                    throw var8;
+                    throw responseException;
                 }
 
                 if (response != null) {
                     response.close();
                 }
-            } catch (Throwable var9) {
+            } catch (Throwable httpClientException) {
                 if (httpClient != null) {
                     try {
                         httpClient.close();
-                    } catch (Throwable var6) {
-                        var9.addSuppressed(var6);
+                    } catch (Throwable closeException) {
+                        httpClientException.addSuppressed(closeException);
                     }
                 }
 
-                throw var9;
+                throw httpClientException;
             }
 
             if (httpClient != null) {
                 httpClient.close();
             }
-        } catch (IOException var10) {
-            IOException e = var10;
-            log.severe("Error during POST request: " + e.getMessage());
-            Assert.fail("Error during POST request: " + e.getMessage());
+        } catch (IOException ioException) {
+            log.severe("Error during POST request: " + ioException.getMessage());
+            Assert.fail("Error during POST request: " + ioException.getMessage());
         }
-
     }
 
     @Then("the Earth API response contains a {int} error")
     public void verifyPostRequestError(int expectedStatusCode) {
         Assert.assertEquals("Status code should match the expected value", (long)expectedStatusCode, (long)this.statusCode);
         if (this.statusCode == 405) {
-            log.warning("-----------------------------------------------------------------------------------Error 405: POST method is not allowed for this resource.----------------------------------------------------------------------------------");
+            log.severe("-----------------------------------------------------------------------------------Error 405: POST method is not allowed for this resource.----------------------------------------------------------------------------------");
         }
-
     }
+
+    @Then("I should see the APOD URL displayed and it matches the built URL")
+    public void iShouldSeeTheAPODURLDisplayedAndItMatchesTheBuiltURL() {
+    }
+
+    @Then("I should see the Earth URL displayed and it matches the built URL")
+    public void iShouldSeeTheEarthURLDisplayedAndItMatchesTheBuiltURL() {
+    }
+
 
     abstract static class NasaApiHandler {
         NasaApiHandler() {
@@ -285,9 +289,9 @@ public class NasaApiSteps {
 
         abstract String buildUrl();
 
-        abstract String fetchData(String var1) throws IOException;
+        abstract String fetchData(String selection) throws IOException;
 
-        abstract String extractImageUrl(String var1);
+        abstract String extractImageUrl(String selection);
     }
 
     static class ApodApiHandler extends NasaApiHandler {
@@ -316,8 +320,8 @@ public class NasaApiSteps {
         }
 
         String buildUrl() {
-            String var10000 = Constants.BASE_URL;
-            return var10000 + "/planetary/earth/assets?lon=" + Constants.LONGITUDE + "&lat=" + Constants.LATITUDE + "&date=" + ConfigLoader.getCurrentDate() + "&dim=" + Constants.DIMENSION + "&api_key=" + Constants.API_KEY;
+            String protocolUrl = Constants.BASE_URL;
+            return protocolUrl + "/planetary/earth/assets?lon=" + Constants.LONGITUDE + "&lat=" + Constants.LATITUDE + "&date=" + ConfigLoader.getCurrentDate() + "&dim=" + Constants.DIMENSION + "&api_key=" + Constants.API_KEY;
         }
 
         String fetchData(String url) throws IOException {
@@ -329,10 +333,9 @@ public class NasaApiSteps {
                 Method method = handler.getClass().getDeclaredMethod("extractUrlFromResponse", String.class);
                 method.setAccessible(true);
                 return (String)method.invoke(handler, response);
-            } catch (Exception var4) {
-                Exception e = var4;
-                NasaApiSteps.log.severe("Error accessing protected method: " + e.getMessage());
-                throw new RuntimeException("Failed to extract image URL using reflection", e);
+            } catch (Exception reflectionException) {
+                log.severe("Error accessing protected method: " + reflectionException.getMessage());
+                throw new RuntimeException("Failed to extract image URL using reflection", reflectionException);
             }
         }
 
@@ -341,4 +344,3 @@ public class NasaApiSteps {
         }
     }
 }
-
