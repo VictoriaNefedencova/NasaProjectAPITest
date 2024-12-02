@@ -6,8 +6,6 @@ org\example\NasaCheckError.class
 org\example\ConfigLoader.class
 org\example\NasaAnswerEarth$Resource.class
 org\example\NasaApi.class
-org.codehaus.plexus.compiler.javac.JavacCompiler13301429964627987385arguments
 org\example\Constants.class
 org\example\NasaAnswerEarth.class
 org\example\NasaApiBase.class
-javac.bat

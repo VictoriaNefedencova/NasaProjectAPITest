@@ -27,10 +27,11 @@ import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.interactions.Actions;
 import java.io.InputStream;
 import java.util.Properties;
+import io.github.bonigarcia.wdm.WebDriverManager;
 
 public class NasaApiSteps {
     private final NasaApi nasaApi = new NasaApi();
-    private final NasaEarthImagery earthImagery = new NasaEarthImagery();
+    //private final NasaEarthImagery earthImagery = new NasaEarthImagery();
     private static final Logger log = Logger.getLogger(NasaApiSteps.class.getName());
     private WebDriver driver;
     private String apiUrl;
@@ -39,9 +40,7 @@ public class NasaApiSteps {
     private int statusCode;
     private final NasaWebTest nasaWebTest = new NasaWebTest();
 
-
     public NasaApiSteps() {
-
     }
 
     @Given("the current day's image is available on the APOD API")
@@ -103,7 +102,7 @@ public class NasaApiSteps {
 
     @Given(value = "I navigate to the NASA API homepage")
     public void navigateToNasaApiHomepage() {
-        loadDriverPath(); // Load the driver path before using it
+        loadDriverPath(); // Load the driver path
 
         this.driver = new ChromeDriver(); // Initialize the WebDriver with ChromeDriver
         new Actions(this.driver); // Create an Actions object for performing complex interactions
@@ -114,21 +113,45 @@ public class NasaApiSteps {
 
     // Load the driver path from the properties file
     private void loadDriverPath() {
-        Properties properties = new Properties();
-        try (InputStream inputStream = getClass().getClassLoader().getResourceAsStream("config.properties")) {
-            // Load properties from the file
-            properties.load(inputStream);
+        // Load the value of the 'useWebDriverManager' property
+        String useWebDriverManager = System.getProperty("useWebDriverManager", "false");
 
-            // Directly retrieve the ChromeDriver path from the properties file
-            String driverPath = properties.getProperty("webdriver.chrome.driver");
+        // If useWebDriverManager=true, use WebDriverManager to download the driver
+        if (Boolean.parseBoolean(useWebDriverManager)) {
+            try {
+                // Use WebDriverManager to set up the driver automatically
+                WebDriverManager.chromedriver().setup();
+                log.severe("WebDriverManager setup completed. ChromeDriver is now managed automatically.");
+            } catch (Exception e) {
+                log.severe("Error while setting up WebDriverManager: " + e.getMessage());
+            }
+        } else {
+            // If WebDriverManager is not used, load the driver path from the config file
+            try (InputStream inputStream = getClass().getClassLoader().getResourceAsStream("config.properties")) {
+                if (inputStream == null) {
+                    log.severe("config.properties file not found.");
+                    return;
+                }
 
-            // Set the system property for ChromeDriver
-            System.setProperty("webdriver.chrome.driver", driverPath);
-            log.severe("ChromeDriver path set to: " + driverPath);
+                // Load properties from the file
+                Properties properties = new Properties();
+                properties.load(inputStream);
 
-        } catch (Exception e) {
-            // Log any exceptions encountered during the process
-            log.severe("Error loading driver path from properties file: " + e.getMessage());
+                // Get the ChromeDriver path from the configuration file
+                String driverPath = properties.getProperty("webdriver.chrome.driver");
+
+                // If the driver path is not specified or the file doesn't exist, log an error
+                if (driverPath == null || driverPath.isEmpty()) {
+                    log.severe("ChromeDriver path not specified in the config file.");
+                    return;
+                }
+
+                // Set the system property for ChromeDriver using the path from the config file
+                System.setProperty("webdriver.chrome.driver", driverPath);
+                log.severe("ChromeDriver path set to: " + driverPath);
+            } catch (Exception e) {
+                log.severe("Error loading driver path from properties file: " + e.getMessage());
+            }
         }
     }
 
@@ -166,7 +189,6 @@ public class NasaApiSteps {
         // Call validateUrl from NasaWebTest class
         this.nasaWebTest.validateUrl(driver, selector, type);  // Call the method
     }
-
 
     public String callExtractUrlFromResponse(String response) {
         return this.nasaApi.extractUrlFromResponse(response);
@@ -270,7 +292,9 @@ public class NasaApiSteps {
     public void verifyPostRequestError(int expectedStatusCode) {
         Assert.assertEquals("Status code should match the expected value", (long)expectedStatusCode, (long)this.statusCode);
         if (this.statusCode == 405) {
-            log.severe("-----------------------------------------------------------------------------------Error 405: POST method is not allowed for this resource.----------------------------------------------------------------------------------");
+            log.severe("-----------------------------------------------------------------------------------" +
+                    "Error 405: POST method is not allowed for this resource." +
+                    "----------------------------------------------------------------------------------");
         }
     }
 
@@ -281,7 +305,6 @@ public class NasaApiSteps {
     @Then("I should see the Earth URL displayed and it matches the built URL")
     public void iShouldSeeTheEarthURLDisplayedAndItMatchesTheBuiltURL() {
     }
-
 
     abstract static class NasaApiHandler {
         NasaApiHandler() {
