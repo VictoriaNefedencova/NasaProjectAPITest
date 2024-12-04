@@ -7,9 +7,9 @@
 /dataSources/
 /dataSources.local.xml
 
-# Ignore cucumber reports
-target/cucumber-html-report.html
-target/cucumber.json
+/test-output/
+
+/target/
 
 # Ignore log files
 *.log
