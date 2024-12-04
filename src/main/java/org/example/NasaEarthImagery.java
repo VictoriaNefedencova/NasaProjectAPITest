@@ -1,17 +1,18 @@
 package org.example;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
-import java.awt.*;
+import java.awt.Desktop;
 import java.io.IOException;
 import java.net.URI;
 import java.util.logging.Logger;
+import org.testng.Assert;
+import org.testng.annotations.Test;
 
 public class NasaEarthImagery extends NasaApiBase {
-
     private static final Logger log = Logger.getLogger(NasaEarthImagery.class.getName());
+
+    public NasaEarthImagery() {
+    }
 
     @Test
     public void testImageryProcessing() {
@@ -19,36 +20,27 @@ public class NasaEarthImagery extends NasaApiBase {
         Assert.assertTrue(true);
     }
 
-    @Override
-    protected String buildUrl() {
-        // Use Constants for API endpoint and other parameters
-        return BASE_URL + Constants.EARTH_API_ENDPOINT + "?lon=" + LON + "&lat=" + LAT + "&date=" + DATE
-                + "&dim=" + DIM + "&api_key=" + API_KEY;
+    public String buildUrl() {
+        return BASE_URL + "/planetary/earth/assets?lon=" + LON + "&lat=" + LAT + "&date=" + DATE + "&dim=" + DIM + "&api_key=" + API_KEY;
     }
 
-    @Override
     protected String extractUrlFromResponse(String response) {
         try {
             ObjectMapper mapper = new ObjectMapper();
-            // Parse response into NasaAnswerEarth object
             NasaAnswerEarth nasaAnswer = mapper.readValue(response, NasaAnswerEarth.class);
-            return nasaAnswer.url; // Return URL from the response
+            return nasaAnswer.url;
         } catch (IOException e) {
             log.severe("Error parsing JSON response: " + e.getMessage());
             return null;
         }
     }
 
-    // Method to fetch and open image in a browser
     public void fetchAndOpenImage() {
         try {
-            String url = buildUrl();
+            String url = this.buildUrl();
             log.info("Fetching data from URL: " + url);
-
-            String response = fetchData(url);
-
-            String imageUrl = extractUrlFromResponse(response);
-
+            String response = this.fetchData(url);
+            String imageUrl = this.extractUrlFromResponse(response);
             if (imageUrl != null) {
                 if (Desktop.isDesktopSupported()) {
                     Desktop.getDesktop().browse(new URI(imageUrl));

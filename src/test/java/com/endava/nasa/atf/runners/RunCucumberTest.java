@@ -34,7 +34,7 @@ public class RunCucumberTest {
     @BeforeClass
     public static void setup() {
         // Method executed before tests
-        log.info("Starting Cucumber tests...");
+        log.severe("Starting Cucumber tests...");
     }
 
     @AfterClass
@@ -51,7 +51,7 @@ public class RunCucumberTest {
                 if (reportFile.exists()) {
                     // Open the report in the default browser
                     Desktop.getDesktop().browse(reportFile.toURI());
-                    log.info("HTML report opened in the browser: " + HTML_REPORT_PATH);
+                    log.severe("HTML report opened in the browser: " + HTML_REPORT_PATH);
                 } else {
                     log.severe("HTML report not found at: " + HTML_REPORT_PATH);
                 }
@@ -63,3 +63,5 @@ public class RunCucumberTest {
         }
     }
 }
+
+
