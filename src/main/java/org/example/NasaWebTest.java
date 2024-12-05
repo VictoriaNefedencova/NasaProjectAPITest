@@ -3,7 +3,7 @@ package org.example;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.Properties;
-import java.util.logging.Logger;
+//import java.util.logging.Logger;
 import org.openqa.selenium.By;
 import org.openqa.selenium.Keys;
 import org.openqa.selenium.WebDriver;
@@ -11,9 +11,12 @@ import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.interactions.Actions;
 import org.testng.annotations.Test;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class NasaWebTest {
-    private static final Logger log = Logger.getLogger(NasaWebTest.class.getName());
+    //private static final Logger log = Logger.getLogger(NasaWebTest.class.getName());
+    private static final Logger log = LogManager.getLogger(NasaWebTest.class);
     private static final String NASA_API_URL;
 
     private static String webdriverPath;
@@ -33,7 +36,7 @@ public class NasaWebTest {
         if (webdriverPath != null && !webdriverPath.isEmpty()) {
             System.setProperty("webdriver.chrome.driver", webdriverPath);
         } else {
-            log.severe("Driver path is not set. Using default path.");
+            log.warn("Driver path is not set. Using default path.");
             // System.setProperty("webdriver.chrome.driver", "C://path_to_chromedriver");
         }
 
@@ -42,9 +45,9 @@ public class NasaWebTest {
 
         try {
             driver.manage().window().fullscreen();
-            log.severe("Browser window maximized.");
+            log.warn("Browser window maximized.");
             driver.get(NASA_API_URL);
-            log.severe("Navigated to NASA API website: " + NASA_API_URL);
+            log.warn("Navigated to NASA API website: " + NASA_API_URL);
             WebElement searchField = driver.findElement(By.cssSelector("#search-field-big"));
             searchField.sendKeys(new CharSequence[]{"APOD"});
             Thread.sleep(2550L);
@@ -78,7 +81,7 @@ public class NasaWebTest {
             this.validateUrl(driver, "#b-a4 > p:nth-child(9) > code", "EARTH");
         } finally {
             driver.quit();
-            log.severe("Browser closed.");
+            log.warn("Browser closed.");
         }
     }
 
@@ -86,20 +89,20 @@ public class NasaWebTest {
         try {
             WebElement codeElement = driver.findElement(By.cssSelector(selector));
             String fullUrl = codeElement.getText().trim();
-            log.severe(type + " Code: " + fullUrl);
+            log.warn(type + " Code: " + fullUrl);
             URL url = new URL(fullUrl.split(" ")[1]);
             String protocolUrl = url.getProtocol();
             String baseUrl = protocolUrl + "://" + url.getHost();
             String path = url.getPath();
-            log.severe(type + " Base URL: " + baseUrl);
-            log.severe(type + " Path: " + path);
+            log.warn(type + " Base URL: " + baseUrl);
+            log.warn(type + " Path: " + path);
             if (baseUrl.equals(NasaApiBase.BASE_URL)) {
-                log.severe(type + " URL matches the base URL.");
+                log.info(type + " URL matches the base URL.");
             } else {
-                log.severe(type + " URL does not match the base URL.");
+                log.info(type + " URL does not match the base URL.");
             }
         } catch (Exception exep) {
-            log.severe("Error processing " + type + " URL: " + exep.getMessage());
+            log.warn("Error processing " + type + " URL: " + exep.getMessage());
         }
     }
 
@@ -108,18 +111,18 @@ public class NasaWebTest {
         Properties properties = new Properties();
         try (InputStream inputStream = NasaWebTest.class.getClassLoader().getResourceAsStream("config.properties")) {
             if (inputStream == null) {
-                log.severe("Sorry, unable to find config.properties");
+                log.warn("Sorry, unable to find config.properties");
                 return;
             }
             properties.load(inputStream);
             webdriverPath = properties.getProperty("webdriver.chrome.driver");
             if (webdriverPath != null) {
-                log.severe("WebDriver path loaded from config: " + webdriverPath);
+                log.warn("WebDriver path loaded from config: " + webdriverPath);
             } else {
-                log.severe("webdriver.chrome.driver not found in config.properties.");
+                log.warn("webdriver.chrome.driver not found in config.properties.");
             }
         } catch (Exception e) {
-            log.severe("Error loading WebDriver path from config.properties: " + e.getMessage());
+            log.warn("Error loading WebDriver path from config.properties: " + e.getMessage());
         }
     }
 }

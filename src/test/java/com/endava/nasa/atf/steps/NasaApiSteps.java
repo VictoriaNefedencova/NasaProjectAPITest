@@ -8,7 +8,7 @@ import java.awt.Desktop;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.URI;
-import java.util.logging.Logger;
+//import java.util.logging.Logger;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -25,20 +25,29 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.interactions.Actions;
+import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.logging.LogEntries;
+import org.openqa.selenium.logging.LogEntry;
+import org.openqa.selenium.logging.LogType;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import java.io.InputStream;
 import java.util.Properties;
 import io.github.bonigarcia.wdm.WebDriverManager;
 
-public class NasaApiSteps {
+
+public class NasaApiSteps<Hooks> {
     private final NasaApi nasaApi = new NasaApi();
-    //private final NasaEarthImagery earthImagery = new NasaEarthImagery();
-    private static final Logger log = Logger.getLogger(NasaApiSteps.class.getName());
+    private final NasaEarthImagery earthImagery = new NasaEarthImagery();
+    //private static final Logger log = Logger.getLogger(NasaApiSteps.class.getName());
+    private static final Logger log = LogManager.getLogger(NasaApiSteps.class);
     private WebDriver driver;
     private String apiUrl;
     private String apiResponse;
     private String imageUrl;
     private int statusCode;
     private final NasaWebTest nasaWebTest = new NasaWebTest();
+
 
     public NasaApiSteps() {
     }
@@ -52,15 +61,15 @@ public class NasaApiSteps {
         try {
             this.imageUrl = this.callExtractUrlFromResponse(this.apiResponse);
             Assert.assertNotNull("Image URL should not be null", this.imageUrl);
-            log.severe("Extracted image URL: " + this.imageUrl);
+            log.warn("Extracted image URL: " + this.imageUrl);
             if (Desktop.isDesktopSupported()) {
                 Desktop.getDesktop().browse(new URI(this.imageUrl));
-                log.severe("Image successfully opened in the browser: " + this.imageUrl);
+                log.warn("Image successfully opened in the browser: " + this.imageUrl);
             } else {
                 Assert.fail("Desktop operations are not supported.");
             }
         } catch (Exception generalException) {
-            log.severe("Error opening image: " + generalException.getMessage());
+            log.warn("Error opening image: " + generalException.getMessage());
             Assert.fail("Error opening image: " + generalException.getMessage());
         }
     }
@@ -85,13 +94,13 @@ public class NasaApiSteps {
             Assert.assertNotNull("Image URL should not be null", this.imageUrl);
             if (Desktop.isDesktopSupported()) {
                 Desktop.getDesktop().browse(new URI(this.imageUrl));
-                log.severe("Image successfully opened in browser: " + this.imageUrl);
+                log.warn("Image successfully opened in browser: " + this.imageUrl);
             } else {
-                log.severe("Desktop operations are not supported on this system.");
+                log.warn("Desktop operations are not supported on this system.");
                 Assert.fail("Desktop operations are not supported on this system.");
             }
         } catch (Exception generalException) {
-            log.severe("Error while opening the image in browser: " + generalException.getMessage());
+            log.warn("Error while opening the image in browser: " + generalException.getMessage());
             Assert.fail("Error while opening the image in browser: " + generalException.getMessage());
         }
     }
@@ -102,56 +111,82 @@ public class NasaApiSteps {
 
     @Given(value = "I navigate to the NASA API homepage")
     public void navigateToNasaApiHomepage() {
-        loadDriverPath(); // Load the driver path
+        loadDriverPath(); // Load the driver path before using it
+
+
 
         this.driver = new ChromeDriver(); // Initialize the WebDriver with ChromeDriver
         new Actions(this.driver); // Create an Actions object for performing complex interactions
         this.driver.get(Constants.BASE_URL); // Navigate to the NASA API homepage
         this.driver.manage().window().fullscreen(); // Set the browser window to fullscreen
-        log.severe("Navigated to NASA API website: " + Constants.BASE_URL); // Log the navigation action
+        log.warn("Navigated to NASA API website: " + Constants.BASE_URL); // Log the navigation action
     }
 
-    // Load the driver path from the properties file
+    /*// Load the driver path from the properties file
     private void loadDriverPath() {
-        // Load the value of the 'useWebDriverManager' property
-        String useWebDriverManager = System.getProperty("useWebDriverManager", "false");
+        Properties properties = new Properties();
+        try (InputStream inputStream = getClass().getClassLoader().getResourceAsStream("config.properties")) {
+            // Load properties from the file
+            properties.load(inputStream);
 
-        // If useWebDriverManager=true, use WebDriverManager to download the driver
-        if (Boolean.parseBoolean(useWebDriverManager)) {
-            try {
-                // Use WebDriverManager to set up the driver automatically
+            // Directly retrieve the ChromeDriver path from the properties file
+            String driverPath = properties.getProperty("webdriver.chrome.driver");
+
+            // Set the system property for ChromeDriver
+            System.setProperty("webdriver.chrome.driver", driverPath);
+            log.warn("ChromeDriver path set to: " + driverPath);
+
+        } catch (Exception e) {
+            // Log any exceptions encountered during the process
+            log.warn("Error loading driver path from properties file: " + e.getMessage());
+        }
+    }*/
+
+
+
+    private void loadDriverPath() {
+        try {
+            // Check if WebDriverManager is available
+            if (isWebDriverManagerAvailable()) {
+                // If WebDriverManager is available, set up the driver
                 WebDriverManager.chromedriver().setup();
-                log.severe("WebDriverManager setup completed. ChromeDriver is now managed automatically.");
-            } catch (Exception e) {
-                log.severe("Error while setting up WebDriverManager: " + e.getMessage());
+                log.warn("ChromeDriver path set using WebDriverManager.");
+            } else {
+                // If WebDriverManager is not available, load the path from the config.properties file
+                loadDriverPathFromConfig();
             }
-        } else {
-            // If WebDriverManager is not used, load the driver path from the config file
-            try (InputStream inputStream = getClass().getClassLoader().getResourceAsStream("config.properties")) {
-                if (inputStream == null) {
-                    log.severe("config.properties file not found.");
-                    return;
-                }
+        } catch (Exception e) {
+            log.warn("Error in loadDriverPath: " + e.getMessage());
+        }
+    }
 
-                // Load properties from the file
-                Properties properties = new Properties();
+    // Method to check if WebDriverManager is available
+    private boolean isWebDriverManagerAvailable() {
+        try {
+            // Attempt to use WebDriverManager
+            WebDriverManager.chromedriver().getDownloadedDriverVersion();
+            return true;  // WebDriverManager is available
+        } catch (Exception e) {
+            return false;  // WebDriverManager is not available
+        }
+    }
+
+    // Method to load the driver path from config.properties
+    private void loadDriverPathFromConfig() {
+        Properties properties = new Properties();
+        try (InputStream inputStream = getClass().getClassLoader().getResourceAsStream("config.properties")) {
+            if (inputStream != null) {
                 properties.load(inputStream);
-
-                // Get the ChromeDriver path from the configuration file
                 String driverPath = properties.getProperty("webdriver.chrome.driver");
 
-                // If the driver path is not specified or the file doesn't exist, log an error
-                if (driverPath == null || driverPath.isEmpty()) {
-                    log.severe("ChromeDriver path not specified in the config file.");
-                    return;
-                }
-
-                // Set the system property for ChromeDriver using the path from the config file
+                // Set the ChromeDriver path via system property
                 System.setProperty("webdriver.chrome.driver", driverPath);
-                log.severe("ChromeDriver path set to: " + driverPath);
-            } catch (Exception e) {
-                log.severe("Error loading driver path from properties file: " + e.getMessage());
+                log.warn("ChromeDriver path set from config.properties: " + driverPath);
+            } else {
+                log.warn("config.properties file not found.");
             }
+        } catch (Exception e) {
+            log.warn("Error loading driver path from properties file: " + e.getMessage());
         }
     }
 
@@ -181,13 +216,29 @@ public class NasaApiSteps {
         Thread.sleep(1000L);
     }
 
-    @Then(value = "I should see the {string} URL displayed and it matches the built URL")
+   /* @Then(value = "I should see the {string} URL displayed and it matches the built URL")
     public void validateUrlDisplayedAndCompare(String type) {
         // Determine the selector based on type
         String selector = type.equalsIgnoreCase("APOD") ? "#b-a1 > p:nth-child(7) > code" : "#b-a4 > p:nth-child(9) > code";
 
         // Call validateUrl from NasaWebTest class
-        this.nasaWebTest.validateUrl(driver, selector, type);  // Call the method
+        this.nasaWebTest.validateUrl(driver, selector, type);  // Call the method from NasaWebTest
+    } */
+
+
+    @Then(value = "I should see the {string} URL displayed and it matches the built URL")
+    public void validateUrlDisplayedAndCompare(String type) {
+        // Determine the selector based on the API type (APOD or Earth)
+        String selector = type.equalsIgnoreCase("APOD") ? "#b-a1 > p:nth-child(7) > code" : "#b-a4 > p:nth-child(9) > code";
+
+        // Log the process
+        log.warn("Validating the URL for the " + type + " API.");
+        System.out.println("Validating the URL for the " + type + " API.");
+
+
+        // Call validateUrl from NasaWebTest class to compare the URL
+        this.nasaWebTest.validateUrl(driver, selector, type);
+        log.debug("Starting the validation process for the " + type + " API.");
     }
 
     public String callExtractUrlFromResponse(String response) {
@@ -196,10 +247,10 @@ public class NasaApiSteps {
 
     private void handleApiRequest(NasaApiHandler handler) throws IOException {
         this.apiUrl = handler.buildUrl();
-        log.severe("Sending request to NASA API with URL: " + this.apiUrl);
+        log.warn("Sending request to NASA API with URL: " + this.apiUrl);
         this.apiResponse = handler.fetchData(this.apiUrl);
         Assert.assertNotNull("API response should not be null", this.apiResponse);
-        log.severe("Received response from NASA API: " + this.apiResponse);
+        log.warn("Received response from NASA API: " + this.apiResponse);
         this.imageUrl = handler.extractImageUrl(this.apiResponse);
         Assert.assertNotNull("Image URL should not be null", this.imageUrl);
     }
@@ -209,12 +260,12 @@ public class NasaApiSteps {
         try {
             if (Desktop.isDesktopSupported()) {
                 Desktop.getDesktop().browse(new URI(this.imageUrl));
-                log.severe("Image successfully opened in the browser: " + this.imageUrl);
+                log.warn("Image successfully opened in the browser: " + this.imageUrl);
             } else {
                 Assert.fail("Desktop operations are not supported.");
             }
         } catch (Exception generalException) {
-            log.severe("Error opening image: " + generalException.getMessage());
+            log.warn("Error opening image: " + generalException.getMessage());
             Assert.fail("Error opening image: " + generalException.getMessage());
         }
     }
@@ -233,14 +284,14 @@ public class NasaApiSteps {
     public void closeBrowser() {
         if (this.driver != null) {
             this.driver.quit();
-            log.severe("Browser closed successfully.");
+            log.warn("Browser closed successfully.");
         }
     }
 
     @When("I send a valid POST request to the Earth API on NASA's site")
     public void sendPostRequestToEarthApi() {
         this.apiUrl = (new EarthApiHandler()).buildUrl();
-        log.severe("Sending POST request to Earth API with URL: " + this.apiUrl);
+        log.warn("Sending POST request to Earth API with URL: " + this.apiUrl);
 
         try {
             CloseableHttpClient httpClient = HttpClients.createDefault();
@@ -251,7 +302,7 @@ public class NasaApiSteps {
 
                 try {
                     this.statusCode = response.getStatusLine().getStatusCode();
-                    log.severe("Received response with status code: " + this.statusCode);
+                    log.warn("Received response with status code: " + this.statusCode);
                 } catch (Throwable responseException) {
                     if (response != null) {
                         try {
@@ -283,7 +334,7 @@ public class NasaApiSteps {
                 httpClient.close();
             }
         } catch (IOException ioException) {
-            log.severe("Error during POST request: " + ioException.getMessage());
+            log.warn("Error during POST request: " + ioException.getMessage());
             Assert.fail("Error during POST request: " + ioException.getMessage());
         }
     }
@@ -292,9 +343,8 @@ public class NasaApiSteps {
     public void verifyPostRequestError(int expectedStatusCode) {
         Assert.assertEquals("Status code should match the expected value", (long)expectedStatusCode, (long)this.statusCode);
         if (this.statusCode == 405) {
-            log.severe("-----------------------------------------------------------------------------------" +
-                    "Error 405: POST method is not allowed for this resource." +
-                    "----------------------------------------------------------------------------------");
+            log.warn("-----------------------------------------------------------------------------------" +
+                    "Error 405: POST method is not allowed for this resource.----------------------------------------------------------------------------------");
         }
     }
 
@@ -357,7 +407,7 @@ public class NasaApiSteps {
                 method.setAccessible(true);
                 return (String)method.invoke(handler, response);
             } catch (Exception reflectionException) {
-                log.severe("Error accessing protected method: " + reflectionException.getMessage());
+                log.warn("Error accessing protected method: " + reflectionException.getMessage());
                 throw new RuntimeException("Failed to extract image URL using reflection", reflectionException);
             }
         }
