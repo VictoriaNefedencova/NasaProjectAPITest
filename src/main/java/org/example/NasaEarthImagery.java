@@ -1,68 +1,67 @@
 package org.example;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-
-import org.testng.annotations.Test;
-import org.testng.Assert;
-
-import java.awt.*;
+import java.awt.Desktop;
 import java.io.IOException;
 import java.net.URI;
+import java.util.logging.Logger;
+import org.testng.Assert;
+import org.testng.annotations.Test;
 
 public class NasaEarthImagery extends NasaApiBase {
+    private static final Logger log = Logger.getLogger(NasaEarthImagery.class.getName());
+
+    public NasaEarthImagery() {
+    }
 
     @Test
     public void testImageryProcessing() {
-        System.out.println("NasaEarthImagery test executed.");
+        log.info("Executing NasaEarthImagery test...");
         Assert.assertTrue(true);
     }
 
-    @Override
-    protected String buildUrl() {
-        // Формируем URL запроса для получения изображений
+    public String buildUrl() {
         return BASE_URL + "/planetary/earth/assets?lon=" + LON + "&lat=" + LAT + "&date=" + DATE + "&dim=" + DIM + "&api_key=" + API_KEY;
     }
 
-    @Override
     protected String extractUrlFromResponse(String response) {
         try {
             ObjectMapper mapper = new ObjectMapper();
-            // ответ преобразуется в объект NasaAnswerEarth
             NasaAnswerEarth nasaAnswer = mapper.readValue(response, NasaAnswerEarth.class);
-            return nasaAnswer.url;  // Возвращаем URL из ответа
+            return nasaAnswer.url;
         } catch (IOException e) {
-            System.err.println("Ошибка при парсинге JSON: " + e.getMessage());
+            log.severe("Error parsing JSON response: " + e.getMessage());
             return null;
         }
     }
 
-    // Метод для получения и открытия изображения в браузере
     public void fetchAndOpenImage() {
         try {
-            String url = buildUrl();
-            String response = fetchData(url);
-
-            String imageUrl = extractUrlFromResponse(response);
-
+            String url = this.buildUrl();
+            log.info("Fetching data from URL: " + url);
+            String response = this.fetchData(url);
+            String imageUrl = this.extractUrlFromResponse(response);
             if (imageUrl != null) {
                 if (Desktop.isDesktopSupported()) {
-                    Desktop.getDesktop().browse(new URI(imageUrl)); // Открытие изображения в браузере
-                    System.out.println("Изображение открыто в браузере: " + imageUrl);
+                    Desktop.getDesktop().browse(new URI(imageUrl));
+                    log.info("Image opened in browser: " + imageUrl);
                 } else {
-                    System.out.println("Открытие браузера не поддерживается на этой системе.");
+                    log.warning("Desktop browsing is not supported on this system.");
                 }
             } else {
-                System.out.println("URL изображения не найден.");
+                log.warning("Image URL not found in the response.");
             }
         } catch (IOException e) {
-            System.err.println("Ошибка при получении данных: " + e.getMessage());
+            log.severe("Error fetching data: " + e.getMessage());
         } catch (Exception e) {
-            System.err.println("Ошибка при открытии изображения в браузере: " + e.getMessage());
+            log.severe("Error opening image in browser: " + e.getMessage());
         }
     }
 
     public static void main(String[] args) {
+        log.info("Starting NasaEarthImagery application...");
         NasaEarthImagery imagery = new NasaEarthImagery();
         imagery.fetchAndOpenImage();
+        log.info("Application finished execution.");
     }
 }

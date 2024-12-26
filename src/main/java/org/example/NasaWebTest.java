@@ -1,147 +1,125 @@
 package org.example;
 
+import java.io.InputStream;
+import java.net.URL;
+import java.util.Properties;
+import java.util.logging.Logger;
 import org.openqa.selenium.By;
 import org.openqa.selenium.Keys;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.interactions.Actions;  // Импорт класса Actions
-
+import org.openqa.selenium.interactions.Actions;
 import org.testng.annotations.Test;
-import org.testng.Assert;
-
-import java.net.URL;
 
 public class NasaWebTest {
+    private static final Logger log = Logger.getLogger(NasaWebTest.class.getName());
+    private static final String NASA_API_URL;
 
-    @Test
-    public void testWebPage() {
-        System.out.println("NasaWebTest test executed.");
-        Assert.assertTrue(true);
+    private static String webdriverPath;
+
+    public NasaWebTest() {
     }
 
-    public static void main(String[] args) throws InterruptedException {
+    // Load the driver path from config.properties
+    static {
+        loadDriverPath();
+        NASA_API_URL = Constants.BASE_URL;  // Assuming BASE_URL is predefined in Constants class.
+    }
 
-        System.setProperty("webdriver.chrome.driver", "C:\\Users\\vnefedencova\\chromedriver.exe");
+    @Test
+    public void testWebPageInteractions() throws InterruptedException {
+        // Use the driver path loaded from the config file
+        if (webdriverPath != null && !webdriverPath.isEmpty()) {
+            System.setProperty("webdriver.chrome.driver", webdriverPath);
+        } else {
+            log.severe("Driver path is not set. Using default path.");
+            // System.setProperty("webdriver.chrome.driver", "C://path_to_chromedriver");
+        }
 
-        // драйвер
         WebDriver driver = new ChromeDriver();
-
-        //  Actions для симуляции действий прокрутки
         Actions actions = new Actions(driver);
 
         try {
-
-            // Разворачиваем окно браузера на полный экран
             driver.manage().window().fullscreen();
-
-            // Открываем сайт NASA API
-            driver.get("https://api.nasa.gov/");
-
-            // Разворачиваем окно браузера на полный экран
-            driver.manage().window().fullscreen();
-
-            Thread.sleep(450);
-
-            // Находим поле для поиска и вводим "APOD"
-            WebElement searchField = driver.findElement(By.id("search-field-big"));
-            searchField.sendKeys("APOD");
-            Thread.sleep(2550);
-
-            // Нажимаем на кнопку APOD
-            WebElement apodButton = driver.findElement(By.id("apod"));
+            log.severe("Browser window maximized.");
+            driver.get(NASA_API_URL);
+            log.severe("Navigated to NASA API website: " + NASA_API_URL);
+            WebElement searchField = driver.findElement(By.cssSelector("#search-field-big"));
+            searchField.sendKeys(new CharSequence[]{"APOD"});
+            Thread.sleep(2550L);
+            WebElement apodButton = driver.findElement(By.cssSelector("#apod"));
             apodButton.click();
-
-            // Прокручиваем страницу вниз с использованием Actions
             actions.sendKeys(Keys.PAGE_DOWN).perform();
-            // Ждем, чтобы страница успела загрузиться
-            Thread.sleep(5450);
+            Thread.sleep(2450L);
             actions.sendKeys(Keys.PAGE_DOWN).perform();
-
-
-            // Ищем код для APOD в документе
-            WebElement apodCode = driver.findElement(By.cssSelector("#b-a1 > p:nth-child(7) > code"));
-            String apodUrl = apodCode.getText().trim();  // Извлекаем полный URL
-            System.out.println("APOD Code: " + apodUrl);
-
-            // Разделяем URL на базовый URL и путь с помощью java.net.URL
-            try {
-                URL url = new URL(apodUrl.split(" ")[1]); // Извлекаем второй элемент (URL)
-                String apodBaseUrl = url.getProtocol() + "://" + url.getHost();  // Базовый URL
-                String apodPath = url.getPath();  // Путь
-
-                System.out.println("APOD Base URL: " + apodBaseUrl);
-                System.out.println("APOD Path: " + apodPath);
-
-                // Сравниваем с глобальной переменной BASE_URL
-                if (apodBaseUrl.equals(NasaApiBase.BASE_URL)) {
-                    System.out.println("------------------------------------------------------------APOD URL совпадает с базовым URL!------------------------------------------------------------");
-                } else {
-                    System.out.println("Ошибка: APOD URL не совпадает с базовым.");
-                }
-
-            } catch (Exception e) {
-                e.printStackTrace();
-                System.out.println("Ошибка при обработке APOD URL.");
-            }
-           // Найти кнопку с помощью CSS-селектора
-            WebElement button = driver.findElement(By.cssSelector("#browseAPI > div > div > div > form > button > span"));
-
-            // Используем Actions для перемещения к элементу
-            //Actions actions = new Actions(driver);
-            actions.moveToElement(button).perform();
-
-            Thread.sleep(450);
-
-
-            // Очищаем поле поиска и вводим "EARTH"
+            Thread.sleep(2450L);
+            actions.sendKeys(Keys.PAGE_DOWN).perform();
+            Thread.sleep(2450L);
+            actions.sendKeys(Keys.PAGE_DOWN).perform();
+            this.validateUrl(driver, "#b-a1 > p:nth-child(7) > code", "APOD");
+            WebElement apiBrowseButton = driver.findElement(By.cssSelector("#browseAPI > div > div > div > form > button > span"));
+            actions.moveToElement(apiBrowseButton).perform();
+            Thread.sleep(450L);
             searchField.clear();
-            searchField.sendKeys("EARTH");
-            Thread.sleep(2550);
-
-
-            // Нажимаем на кнопку Earth
-            WebElement earthButton = driver.findElement(By.id("earth"));
+            searchField.sendKeys(new CharSequence[]{"EARTH"});
+            Thread.sleep(2550L);
+            WebElement earthButton = driver.findElement(By.cssSelector("#earth"));
             earthButton.click();
-
-            // Прокручиваем страницу вниз с использованием Actions
             actions.sendKeys(Keys.PAGE_DOWN).perform();
-
-
+            Thread.sleep(2150L);
             actions.sendKeys(Keys.PAGE_DOWN).perform();
+            Thread.sleep(2150L);
             actions.sendKeys(Keys.PAGE_DOWN).perform();
-            Thread.sleep(5150);
+            Thread.sleep(2450L);
             actions.sendKeys(Keys.PAGE_DOWN).perform();
-
-            // Изменяем селектор для Earth
-            WebElement earthCode = driver.findElement(By.cssSelector("#b-a4 > p:nth-child(9) > code"));
-            String earthUrl = earthCode.getText().trim();  // Извлекаем полный URL
-            System.out.println("Earth Code: " + earthUrl);
-
-            // Разделяем URL на базовый URL и путь с помощью java.net.URL
-            try {
-                URL url = new URL(earthUrl.split(" ")[1]); // Извлекаем второй элемент (URL)
-                String earthBaseUrl = url.getProtocol() + "://" + url.getHost();  // Базовый URL
-                String earthPath = url.getPath();  // Путь
-
-                System.out.println("Earth Base URL: " + earthBaseUrl);
-                System.out.println("Earth Path: " + earthPath);
-
-                // Сравниваем с глобальной переменной BASE_URL
-                if (earthBaseUrl.equals(NasaApiBase.BASE_URL)) {
-                    System.out.println("------------------------------------------------------------Earth URL совпадает с базовым URL!------------------------------------------------------------");
-                } else {
-                    System.out.println("Ошибка: Earth URL не совпадает с базовым");
-                }
-
-            } catch (Exception e) {
-                e.printStackTrace();
-                System.out.println("Ошибка при обработке Earth URL");
-            }
-
+            Thread.sleep(2450L);
+            actions.sendKeys(Keys.PAGE_DOWN).perform();
+            this.validateUrl(driver, "#b-a4 > p:nth-child(9) > code", "EARTH");
         } finally {
-            // Закрываем браузер
             driver.quit();
+            log.severe("Browser closed.");
+        }
+    }
+
+    public void validateUrl(WebDriver driver, String selector, String type) {
+        try {
+            WebElement codeElement = driver.findElement(By.cssSelector(selector));
+            String fullUrl = codeElement.getText().trim();
+            log.severe(type + " Code: " + fullUrl);
+            URL url = new URL(fullUrl.split(" ")[1]);
+            String protocolUrl = url.getProtocol();
+            String baseUrl = protocolUrl + "://" + url.getHost();
+            String path = url.getPath();
+            log.severe(type + " Base URL: " + baseUrl);
+            log.severe(type + " Path: " + path);
+            if (baseUrl.equals(NasaApiBase.BASE_URL)) {
+                log.severe(type + " URL matches the base URL.");
+            } else {
+                log.severe(type + " URL does not match the base URL.");
+            }
+        } catch (Exception exep) {
+            log.severe("Error processing " + type + " URL: " + exep.getMessage());
+        }
+    }
+
+    // Method to load the WebDriver path from config.properties
+    private static void loadDriverPath() {
+        Properties properties = new Properties();
+        try (InputStream inputStream = NasaWebTest.class.getClassLoader().getResourceAsStream("config.properties")) {
+            if (inputStream == null) {
+                log.severe("Sorry, unable to find config.properties");
+                return;
+            }
+            properties.load(inputStream);
+            webdriverPath = properties.getProperty("webdriver.chrome.driver");
+            if (webdriverPath != null) {
+                log.severe("WebDriver path loaded from config: " + webdriverPath);
+            } else {
+                log.severe("webdriver.chrome.driver not found in config.properties.");
+            }
+        } catch (Exception e) {
+            log.severe("Error loading WebDriver path from config.properties: " + e.getMessage());
         }
     }
 }

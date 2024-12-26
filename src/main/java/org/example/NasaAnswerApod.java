@@ -13,7 +13,7 @@ public class NasaAnswerApod {
     String title;
     String url;
 
-    // Конструктор для инициализации всех полей
+    // Constructor for initializing all fields
     public NasaAnswerApod(@JsonProperty("copyright") String copyright,
                           @JsonProperty("date") String date,
                           @JsonProperty("explanation") String explanation,
